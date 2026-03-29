@@ -16,6 +16,7 @@ type Status =
 export function GenerateIdeasButton() {
   const [status, setStatus] = useState<Status>({ phase: "idle" });
   const [useContext, setUseContext] = useState(false);
+  const [guidance, setGuidance] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function stopPolling() {
@@ -61,7 +62,7 @@ export function GenerateIdeasButton() {
       const res = await fetch("/api/llm/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "ideation", personaId: 1, useContext }),
+        body: JSON.stringify({ type: "ideation", personaId: 1, useContext, userGuidance: guidance.trim() || undefined }),
       });
       if (!res.ok) {
         const text = await res.text();
@@ -78,7 +79,14 @@ export function GenerateIdeasButton() {
 
   if (status.phase === "idle") {
     return (
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-col items-end gap-3">
+        <textarea
+          value={guidance}
+          onChange={(e) => setGuidance(e.target.value)}
+          placeholder="Optional: guide the generator… e.g. 'focus on beginner mistakes' or 'funny angle, avoid finance'"
+          rows={2}
+          className="w-72 resize-none rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        />
         <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
           <span>Use approved ideas as style context</span>
           <div

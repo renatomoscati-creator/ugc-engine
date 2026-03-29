@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { enqueue, QUEUE_NAMES } from "@/lib/queue/producers";
 
 export async function POST(req: Request) {
-  const { type, personaId, pillarId, count, useContext } = await req.json();
+  const { type, personaId, pillarId, count, useContext, userGuidance } = await req.json();
 
   if (type === "ideation" || type === "ideas") {
     let existingContext: Array<{ topic: string; angle: string; hookSketch: string }> | undefined;
@@ -30,6 +30,7 @@ export async function POST(req: Request) {
       pillarId,
       count: count ?? 10,
       ...(existingContext ? { existingContext } : {}),
+      ...(userGuidance ? { userGuidance } : {}),
     });
     return NextResponse.json({ jobId: job.id });
   }

@@ -7,18 +7,23 @@ export function ideaGenerationPrompt(params: {
   bannedClaims: string[];
   count: number;
   existingApproved?: Array<{ topic: string; angle: string; hookSketch: string }>;
+  userGuidance?: string;
 }): string {
   const styleRef =
     params.existingApproved && params.existingApproved.length > 0
       ? `\nStyle reference — these are ideas already approved for this creator. Match their energy, specificity, and format:\n${params.existingApproved.map((e) => `- [${e.topic}] ${e.angle} | Hook: ${e.hookSketch}`).join("\n")}\n\nGenerate NEW ideas in the same style. Do not repeat these topics.\n`
       : "";
 
+  const guidanceNote = params.userGuidance?.trim()
+    ? `\nAdditional direction from the creator: "${params.userGuidance.trim()}"\n`
+    : "";
+
   return `You are a content strategist for a virtual creator named "${params.personaName}" in the ${params.niche} niche.
 
 Voice and tone: ${params.voiceTone}
 Content pillar: ${params.pillarName} — ${params.pillarDescription}
 Banned claims or restricted topics: ${params.bannedClaims.join(", ") || "none"}
-${styleRef}
+${styleRef}${guidanceNote}
 Generate exactly ${params.count} short-form video content ideas for TikTok/Instagram Reels/YouTube Shorts.
 Each idea should be highly specific, scroll-stopping, and optimized for the 15-30 second format.
 
