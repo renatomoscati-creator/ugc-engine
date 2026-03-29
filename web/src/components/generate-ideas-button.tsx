@@ -15,7 +15,7 @@ type Status =
 
 export function GenerateIdeasButton() {
   const [status, setStatus] = useState<Status>({ phase: "idle" });
-  const [useContext, setUseContext] = useState(false);
+  const [useContext, setUseContext] = useState(true);
   const [guidance, setGuidance] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
