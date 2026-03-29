@@ -45,6 +45,23 @@ export function startIdeationWorker() {
         ? JSON.parse(persona.bannedClaims)
         : [];
 
+      // Pull ALL rejected ideas to explicitly avoid their topics and angles
+      const rejectedIdeas = db
+        .select({ topic: ideas.topic, angle: ideas.angle, hookSketch: ideas.hookSketch })
+        .from(ideas)
+        .where(and(eq(ideas.status, "rejected"), eq(ideas.personaId, personaId)))
+        .all()
+        .map((r) => ({ topic: r.topic, angle: r.angle ?? "", hookSketch: r.hookSketch ?? "" }));
+
+      // Pull ALL existing (generated + approved) topics to avoid repeats
+      const allExistingTopics = db
+        .select({ topic: ideas.topic })
+        .from(ideas)
+        .where(eq(ideas.personaId, personaId))
+        .all()
+        .map((r) => r.topic)
+        .filter(Boolean) as string[];
+
       const prompts = pillars.map((pillar) =>
         ideaGenerationPrompt({
           personaName: persona.name,
@@ -55,11 +72,18 @@ export function startIdeationWorker() {
           bannedClaims,
           count: perPillar,
           existingApproved: existingContext,
+          rejectedIdeas,
+          existingTopics: allExistingTopics,
           userGuidance,
+          // Inject a random seed phrase so the model doesn't cache its own pattern
+          entropySeed: `session-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         })
       );
 
-      const results = await batch<{ topic: string; angle: string; hookSketch: string }[]>(prompts);
+      const results = await batch<{ topic: string; angle: string; hookSketch: string }[]>(
+        prompts,
+        { temperature: 0.85 } // high enough to break repetition, low enough to stay coherent
+      );
 
       let inserted = 0;
       for (let i = 0; i < results.length; i++) {

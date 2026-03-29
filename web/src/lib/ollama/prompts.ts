@@ -7,33 +7,67 @@ export function ideaGenerationPrompt(params: {
   bannedClaims: string[];
   count: number;
   existingApproved?: Array<{ topic: string; angle: string; hookSketch: string }>;
+  rejectedIdeas?: Array<{ topic: string; angle: string; hookSketch: string }>;
+  existingTopics?: string[];
   userGuidance?: string;
+  entropySeed?: string;
 }): string {
   const styleRef =
     params.existingApproved && params.existingApproved.length > 0
-      ? `\nStyle reference — these are ideas already approved for this creator. Match their energy, specificity, and format:\n${params.existingApproved.map((e) => `- [${e.topic}] ${e.angle} | Hook: ${e.hookSketch}`).join("\n")}\n\nGenerate NEW ideas in the same style. Do not repeat these topics.\n`
+      ? `\nSTYLE REFERENCE — ideas already approved. Match this energy exactly:\n${params.existingApproved.map((e) => `  • [${e.topic}] ${e.angle} | Hook: "${e.hookSketch}"`).join("\n")}\n`
+      : "";
+
+  const rejectedBlock =
+    params.rejectedIdeas && params.rejectedIdeas.length > 0
+      ? `\nREJECTED — do NOT produce anything in this direction, flavor, or format:\n${params.rejectedIdeas.map((e) => `  ✗ [${e.topic}] ${e.angle} | Hook: "${e.hookSketch}"`).join("\n")}\nAvoid the angle, framing, and tone of every item above — not just the literal topic.\n`
+      : "";
+
+  const avoidTopics =
+    params.existingTopics && params.existingTopics.length > 0
+      ? `\nALREADY COVERED — do not repeat or closely paraphrase:\n${params.existingTopics.slice(0, 40).map((t) => `  - ${t}`).join("\n")}\n`
       : "";
 
   const guidanceNote = params.userGuidance?.trim()
-    ? `\nAdditional direction from the creator: "${params.userGuidance.trim()}"\n`
+    ? `\nCREATOR DIRECTION: "${params.userGuidance.trim()}"\n`
     : "";
 
-  return `You are a content strategist for a virtual creator named "${params.personaName}" in the ${params.niche} niche.
+  // Rotate through different creative angles each run to break pattern lock
+  const angles = [
+    "contrarian take — argue the opposite of conventional wisdom",
+    "extreme specificity — niche down to a micro-audience or ultra-specific scenario",
+    "story-driven — hook based on a surprising personal or case-study narrative",
+    "myth-busting — expose a common misconception in this space",
+    "challenge format — dare the viewer to do or test something",
+    "behind-the-scenes — reveal something most people never see",
+    "comparison — side-by-side of two opposing approaches",
+    "mistake-first — open with a relatable failure, then flip it",
+  ];
+  const angleHint = angles[Math.floor(Math.random() * angles.length)];
 
-Voice and tone: ${params.voiceTone}
-Content pillar: ${params.pillarName} — ${params.pillarDescription}
-Banned claims or restricted topics: ${params.bannedClaims.join(", ") || "none"}
-${styleRef}${guidanceNote}
-Generate exactly ${params.count} short-form video content ideas for TikTok/Instagram Reels/YouTube Shorts.
-Each idea should be highly specific, scroll-stopping, and optimized for the 15-30 second format.
+  return `You are a creative director for short-form video. Your job is to generate fresh, scroll-stopping content ideas.
+
+CREATOR: "${params.personaName}" | NICHE: ${params.niche}
+VOICE: ${params.voiceTone}
+PILLAR: ${params.pillarName} — ${params.pillarDescription}
+BANNED TOPICS: ${params.bannedClaims.join(", ") || "none"}
+${styleRef}${rejectedBlock}${avoidTopics}${guidanceNote}
+CREATIVE ANGLE FOR THIS BATCH: ${angleHint}
+
+Rules:
+1. Every idea must feel DIFFERENT from the others in this batch — vary hook type, format, and tone
+2. Be hyper-specific. "5 mistakes beginners make" is lazy. Specific version: "The $12 tool pros use that beginners overlook"
+3. Never produce generic motivational or obvious educational content
+4. Each hookSketch must be the literal opening words someone would hear/read — make them visceral and urgent
+
+Generate exactly ${params.count} ideas optimized for 15-30s vertical video.
 
 Respond with ONLY a JSON array:
 \`\`\`json
 [
   {
     "topic": "specific topic of the video",
-    "angle": "unique angle or perspective that makes this interesting",
-    "hookSketch": "opening 3-5 words that would stop someone scrolling",
+    "angle": "unique angle or perspective",
+    "hookSketch": "exact opening words (under 8 words, punchy)",
     "pillarName": "${params.pillarName}"
   }
 ]
