@@ -1,0 +1,16 @@
+node_modules/
+.next/
+.env
+.env.local
+*.db
+*.db-wal
+*.db-shm
+__pycache__/
+*.pyc
+.venv/
+dist/
+.DS_Store
+shared/assets/audio/*
+shared/assets/animation/*
+shared/assets/renders/*
+!shared/assets/**/.gitkeep
