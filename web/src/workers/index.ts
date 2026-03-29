@@ -3,6 +3,8 @@ import { startScriptWorker } from "./script-worker";
 import { startQAWorker } from "./qa-worker";
 import { startScheduleWorker } from "./schedule-worker";
 import { startPostDispatcherWorker } from "./post-dispatcher-worker";
+import { startPerformanceIngestWorker } from "./performance-ingest-worker";
+import { startRetrospectiveWorker } from "./retrospective-worker";
 import { registerCronJobs } from "@/lib/cron";
 
 export async function startAllWorkers() {
@@ -13,6 +15,8 @@ export async function startAllWorkers() {
   startQAWorker();
   startScheduleWorker();
   startPostDispatcherWorker();
+  startPerformanceIngestWorker();
+  startRetrospectiveWorker();
 
   await registerCronJobs(1);
 
