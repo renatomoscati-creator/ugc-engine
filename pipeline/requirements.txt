@@ -3,3 +3,7 @@ uvicorn[standard]==0.34.*
 python-dotenv==1.0.*
 aiosqlite==0.20.*
 redis==5.2.*
+bullmq==2.12.*
+soundfile==0.13.*
+numpy==1.26.*
+Pillow==11.*
