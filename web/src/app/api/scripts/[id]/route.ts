@@ -26,7 +26,7 @@ export async function PATCH(
   if (action === "send_to_production") {
     const script = db.select().from(scripts).where(eq(scripts.id, scriptId)).get();
     if (!script) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    db.update(scripts).set({ status: "approved_for_production" }).where(eq(scripts.id, scriptId)).run();
+    db.update(scripts).set({ status: "in_production" }).where(eq(scripts.id, scriptId)).run();
     await enqueue(QUEUE_NAMES.TTS, "tts", { scriptId, personaId: script.personaId });
     return NextResponse.json({ ok: true, status: "in_production" });
   }

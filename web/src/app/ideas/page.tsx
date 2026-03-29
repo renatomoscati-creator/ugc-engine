@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { GenerateIdeasButton } from "@/components/generate-ideas-button";
+import { IdeaActions } from "@/components/idea-actions";
 
 type StatusFilter = "pending" | "approved" | "rejected" | undefined;
 
@@ -113,6 +114,7 @@ export default async function IdeasPage({
             <TableHead>Topic</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -132,12 +134,15 @@ export default async function IdeasPage({
               <TableCell className="font-mono text-xs text-muted-foreground">
                 {idea.createdAt}
               </TableCell>
+              <TableCell className="text-right">
+                <IdeaActions ideaId={idea.id} currentStatus={idea.status} />
+              </TableCell>
             </TableRow>
           ))}
           {allIdeas.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={4}
+                colSpan={5}
                 className="py-8 text-center text-muted-foreground"
               >
                 No ideas yet. Click Generate Ideas to get started.

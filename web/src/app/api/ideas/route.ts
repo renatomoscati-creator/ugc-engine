@@ -21,3 +21,12 @@ export async function PATCH(req: Request) {
   db.update(ideas).set({ status }).where(eq(ideas.id, id)).run();
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const id = parseInt(searchParams.get("id") ?? "");
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  const db = getDb();
+  db.delete(ideas).where(eq(ideas.id, id)).run();
+  return NextResponse.json({ ok: true });
+}

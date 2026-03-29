@@ -2,13 +2,34 @@ import { NextResponse } from "next/server";
 import { enqueue, QUEUE_NAMES } from "@/lib/queue/producers";
 
 export async function POST(req: Request) {
-  const { type, personaId, pillarId, count } = await req.json();
+  const { type, personaId, pillarId, count, useContext } = await req.json();
 
   if (type === "ideation" || type === "ideas") {
+    let existingContext: Array<{ topic: string; angle: string; hookSketch: string }> | undefined;
+    if (useContext) {
+      const { getDb } = await import("@/lib/db");
+      const { ideas } = await import("@/lib/db/schema");
+      const { eq, and } = await import("drizzle-orm");
+      const db = getDb();
+      const approved = db
+        .select({ topic: ideas.topic, angle: ideas.angle, hookSketch: ideas.hookSketch })
+        .from(ideas)
+        .where(and(eq(ideas.status, "approved"), eq(ideas.personaId, personaId ?? 1)))
+        .limit(8)
+        .all();
+      if (approved.length > 0) {
+        existingContext = approved.map((r) => ({
+          topic: r.topic,
+          angle: r.angle ?? "",
+          hookSketch: r.hookSketch ?? "",
+        }));
+      }
+    }
     const job = await enqueue(QUEUE_NAMES.IDEATION, "generate-ideas", {
       personaId: personaId ?? 1,
       pillarId,
       count: count ?? 10,
+      ...(existingContext ? { existingContext } : {}),
     });
     return NextResponse.json({ jobId: job.id });
   }

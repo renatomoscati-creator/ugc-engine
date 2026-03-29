@@ -11,6 +11,7 @@ interface IdeationJobData {
   personaId: number;
   pillarId?: number;
   count?: number;
+  existingContext?: Array<{ topic: string; angle: string; hookSketch: string }>;
 }
 
 export function startIdeationWorker() {
@@ -19,7 +20,7 @@ export function startIdeationWorker() {
     async (job: Job<IdeationJobData>) => {
       console.log(`[ideation-worker] START jobId=${job.id}`);
       const db = getDb();
-      const { personaId, pillarId, count = 10 } = job.data;
+      const { personaId, pillarId, count = 10, existingContext } = job.data;
 
       const persona = db
         .select()
@@ -52,6 +53,7 @@ export function startIdeationWorker() {
           pillarDescription: pillar.description ?? "",
           bannedClaims,
           count: perPillar,
+          existingApproved: existingContext,
         })
       );
 

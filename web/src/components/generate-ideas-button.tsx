@@ -15,6 +15,7 @@ type Status =
 
 export function GenerateIdeasButton() {
   const [status, setStatus] = useState<Status>({ phase: "idle" });
+  const [useContext, setUseContext] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function stopPolling() {
@@ -60,7 +61,7 @@ export function GenerateIdeasButton() {
       const res = await fetch("/api/llm/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "ideation", personaId: 1 }),
+        body: JSON.stringify({ type: "ideation", personaId: 1, useContext }),
       });
       if (!res.ok) {
         const text = await res.text();
@@ -77,10 +78,25 @@ export function GenerateIdeasButton() {
 
   if (status.phase === "idle") {
     return (
-      <Button onClick={handleClick}>
-        <Sparkles className="h-4 w-4" />
-        Generate Ideas
-      </Button>
+      <div className="flex flex-col items-end gap-2">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
+          <span>Use approved ideas as style context</span>
+          <div
+            role="switch"
+            aria-checked={useContext}
+            onClick={() => setUseContext((v) => !v)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${useContext ? "bg-primary" : "bg-input"}`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${useContext ? "translate-x-4" : "translate-x-0.5"}`}
+            />
+          </div>
+        </label>
+        <Button onClick={handleClick}>
+          <Sparkles className="h-4 w-4" />
+          Generate Ideas
+        </Button>
+      </div>
     );
   }
 
