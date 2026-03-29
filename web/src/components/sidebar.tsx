@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   FileText,
   Clapperboard,
-  Library,
   CalendarDays,
   BarChart3,
   Lightbulb,
@@ -19,13 +18,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 const navItems = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/ideas", label: "Ideas", icon: Sparkles },
   { href: "/scripts", label: "Scripts", icon: FileText },
   { href: "/production", label: "Production", icon: Clapperboard },
-  { href: "/library", label: "Library", icon: Library },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/recommendations", label: "Insights", icon: Lightbulb },
+  { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
