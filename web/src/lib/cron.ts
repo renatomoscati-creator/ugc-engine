@@ -23,7 +23,7 @@ export async function registerCronJobs(personaId: number) {
   const retroCron = "0 9 * * 1";
 
   const ideationQueue = new Queue(QUEUE_NAMES.IDEATION, { connection: redisConnection });
-  const postQueue = new Queue(QUEUE_NAMES.POST, { connection: redisConnection });
+  const postDispatcherQueue = new Queue(QUEUE_NAMES.POST_DISPATCHER, { connection: redisConnection });
   const performanceQueue = new Queue(QUEUE_NAMES.PERFORMANCE_INGEST, { connection: redisConnection });
   const retroQueue = new Queue(QUEUE_NAMES.RETROSPECTIVE, { connection: redisConnection });
 
@@ -33,10 +33,10 @@ export async function registerCronJobs(personaId: number) {
     { name: "daily-batch", data: { personaId, count: config.ideation?.batch_size ?? 10 } }
   );
 
-  await postQueue.upsertJobScheduler(
+  await postDispatcherQueue.upsertJobScheduler(
     `post-dispatcher-persona-${personaId}`,
     { pattern: "*/15 * * * *" },
-    { name: "post-dispatcher", data: { personaId } }
+    { name: "dispatch-due-schedules", data: { personaId } }
   );
 
   await performanceQueue.upsertJobScheduler(

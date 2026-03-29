@@ -2,6 +2,7 @@ import { startIdeationWorker } from "./ideation-worker";
 import { startScriptWorker } from "./script-worker";
 import { startQAWorker } from "./qa-worker";
 import { startScheduleWorker } from "./schedule-worker";
+import { startPostDispatcherWorker } from "./post-dispatcher-worker";
 import { registerCronJobs } from "@/lib/cron";
 
 export async function startAllWorkers() {
@@ -11,6 +12,7 @@ export async function startAllWorkers() {
   startScriptWorker();
   startQAWorker();
   startScheduleWorker();
+  startPostDispatcherWorker();
 
   await registerCronJobs(1);
 

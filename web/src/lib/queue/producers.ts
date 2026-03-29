@@ -22,6 +22,7 @@ export const QUEUE_NAMES = {
   POST: "post",
   PERFORMANCE_INGEST: "performance-ingest",
   RETROSPECTIVE: "retrospective",
+  POST_DISPATCHER: "post-dispatcher",
 } as const;
 
 export async function enqueue(
