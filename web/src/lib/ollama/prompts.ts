@@ -29,6 +29,39 @@ Respond with ONLY a JSON array:
 \`\`\``;
 }
 
+export function nicheResearchPrompt(niche: string, platform: string): string {
+  return `You are a social media strategist specializing in short-form content. Analyze the "${niche}" niche on ${platform}.
+
+Provide a comprehensive breakdown covering:
+1. Top content formats that perform best
+2. Hook patterns that drive high watch time
+3. Optimal video length in seconds
+4. Ideal posting frequency per week
+5. Audience demographics (age range, interests, income level)
+6. Monetization potential (rate sponsorship attractiveness 1-10, list revenue streams)
+7. Your overall confidence in this analysis (0.0 to 1.0)
+
+Respond with ONLY valid JSON:
+\`\`\`json
+{
+  "formats": ["format1", "format2", "format3"],
+  "hooks": ["hook pattern 1", "hook pattern 2", "hook pattern 3"],
+  "optimalLength": 30,
+  "postingFrequency": 5,
+  "audienceProfile": {
+    "ageRange": "18-34",
+    "interests": ["interest1", "interest2"],
+    "incomeLevel": "middle"
+  },
+  "monetizationPotential": {
+    "sponsorshipScore": 7,
+    "revenueStreams": ["brand deals", "affiliate", "digital products"]
+  },
+  "confidence": 0.85
+}
+\`\`\``;
+}
+
 export function scriptGenerationPrompt(params: {
   personaName: string;
   niche: string;
