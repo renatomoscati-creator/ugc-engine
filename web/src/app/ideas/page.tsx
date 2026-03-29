@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { ideas, contentPillars } from "@/lib/db/schema";
+import { ideas, personas } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,9 @@ export default async function IdeasPage({
 
   const db = getDb();
 
+  const persona = db.select().from(personas).where(eq(personas.id, 1)).get();
+  const nicheEmpty = !persona?.niche;
+
   let query = db
     .select({
       id: ideas.id,
@@ -76,6 +79,15 @@ export default async function IdeasPage({
 
   return (
     <div className="space-y-4">
+      {nicheEmpty && (
+        <div className="rounded-md border border-yellow-400 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200 dark:border-yellow-700">
+          ⚠️ Your creator niche is not set. Ideas will be generic.{" "}
+          <a href="/settings" className="font-medium underline hover:no-underline">
+            Set your niche in Settings.
+          </a>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Ideas</h1>
