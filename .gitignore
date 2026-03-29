@@ -13,4 +13,6 @@ dist/
 shared/assets/audio/*
 shared/assets/animation/*
 shared/assets/renders/*
+shared/assets/identity/*
+shared/assets/templates/*
 !shared/assets/**/.gitkeep
