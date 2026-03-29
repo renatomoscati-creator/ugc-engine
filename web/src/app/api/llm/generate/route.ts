@@ -4,7 +4,7 @@ import { enqueue, QUEUE_NAMES } from "@/lib/queue/producers";
 export async function POST(req: Request) {
   const { type, personaId, pillarId, count } = await req.json();
 
-  if (type === "ideas") {
+  if (type === "ideation" || type === "ideas") {
     const job = await enqueue(QUEUE_NAMES.IDEATION, "generate-ideas", {
       personaId: personaId ?? 1,
       pillarId,
