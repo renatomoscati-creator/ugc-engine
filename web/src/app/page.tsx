@@ -1,11 +1,13 @@
 import { getDb } from "@/lib/db";
 import { productionJobs } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
+import Link from "next/link";
 import { getTopLineMetrics, getPipelineHealth } from "@/lib/analytics";
 import { KpiCard } from "@/components/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sparkles, FileText, Clapperboard } from "lucide-react";
 
 export default async function OverviewPage() {
   const db = getDb();
@@ -45,6 +47,46 @@ export default async function OverviewPage() {
       <div>
         <h1 className="text-2xl font-bold">Overview</h1>
         <p className="text-sm text-muted-foreground">Local-first Virtual Creator OS</p>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quick Actions</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Link href="/ideas">
+            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center gap-3 py-4">
+                <Sparkles className="h-5 w-5 text-purple-400" />
+                <div>
+                  <p className="font-medium text-sm">Generate Ideas</p>
+                  <p className="text-xs text-muted-foreground">Browse and queue new content ideas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/scripts">
+            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center gap-3 py-4">
+                <FileText className="h-5 w-5 text-blue-400" />
+                <div>
+                  <p className="font-medium text-sm">Review Scripts</p>
+                  <p className="text-xs text-muted-foreground">Approve scripts for production</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/production">
+            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center gap-3 py-4">
+                <Clapperboard className="h-5 w-5 text-green-400" />
+                <div>
+                  <p className="font-medium text-sm">View Production Queue</p>
+                  <p className="text-xs text-muted-foreground">Monitor video creation pipeline</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
