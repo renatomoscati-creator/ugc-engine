@@ -11,6 +11,7 @@ export function getDb() {
     const sqlite = new Database(DATABASE_PATH);
     sqlite.pragma("journal_mode = WAL");
     sqlite.pragma("busy_timeout = 5000");
+    sqlite.pragma("foreign_keys = ON");
     _db = drizzle(sqlite, { schema });
   }
   return _db;
