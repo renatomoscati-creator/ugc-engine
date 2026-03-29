@@ -19,6 +19,7 @@ export async function generate(
       model: options.model ?? OLLAMA_MODEL,
       prompt,
       stream: false,
+      think: false, // disable Qwen3 thinking mode — prevents <think>...</think> noise
       options: {
         temperature: options.temperature ?? 0.7,
         num_predict: options.maxTokens ?? 2048,
@@ -39,9 +40,51 @@ export async function generateJSON<T>(
   options: GenerateOptions = {}
 ): Promise<T> {
   const raw = await generate(prompt, { ...options, temperature: 0.3 });
-  const match = raw.match(/```json\n?([\s\S]*?)\n?```/) ?? raw.match(/(\{[\s\S]*\})/);
-  if (!match) throw new Error(`No JSON found in response: ${raw.slice(0, 200)}`);
-  return JSON.parse(match[1]) as T;
+
+  // Strip any residual thinking blocks just in case
+  const stripped = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+
+  // 1. Fenced ```json block
+  const fencedJson = stripped.match(/```json\s*([\s\S]*?)\s*```/);
+  if (fencedJson) return JSON.parse(fencedJson[1]) as T;
+
+  // 2. Any fenced block
+  const fencedAny = stripped.match(/```\s*([\s\S]*?)\s*```/);
+  if (fencedAny) return JSON.parse(fencedAny[1]) as T;
+
+  // 3. Try parsing the whole stripped string directly
+  try {
+    return JSON.parse(stripped) as T;
+  } catch {
+    // fall through to extraction
+  }
+
+  // 4. Extract first JSON array (non-greedy won't work for nested, so find balanced brackets)
+  const arrStart = stripped.indexOf("[");
+  const objStart = stripped.indexOf("{");
+  const start = arrStart !== -1 && (objStart === -1 || arrStart < objStart) ? arrStart : objStart;
+
+  if (start === -1) throw new Error(`No JSON found in response: ${stripped.slice(0, 300)}`);
+
+  const opener = stripped[start];
+  const closer = opener === "[" ? "]" : "}";
+  let depth = 0;
+  let end = -1;
+  for (let i = start; i < stripped.length; i++) {
+    if (stripped[i] === opener) depth++;
+    else if (stripped[i] === closer) {
+      depth--;
+      if (depth === 0) { end = i; break; }
+    }
+  }
+
+  if (end === -1) throw new Error(`Unbalanced JSON in response: ${stripped.slice(0, 300)}`);
+
+  try {
+    return JSON.parse(stripped.slice(start, end + 1)) as T;
+  } catch (e) {
+    throw new Error(`JSON parse failed: ${(e as Error).message}\nRaw: ${stripped.slice(start, end + 1).slice(0, 300)}`);
+  }
 }
 
 export async function batch<T>(

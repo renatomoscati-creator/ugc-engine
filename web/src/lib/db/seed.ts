@@ -1,5 +1,5 @@
 import { getDb } from "./index";
-import { personas, platforms } from "./schema";
+import { personas, platforms, contentPillars } from "./schema";
 
 async function seed() {
   const db = getDb();
@@ -65,6 +65,44 @@ async function seed() {
       })
       .run();
     console.log("Seeded default persona");
+  }
+
+  // Seed content pillars for persona 1
+  const existingPillars = db.select().from(contentPillars).all();
+  if (existingPillars.length === 0) {
+    db.insert(contentPillars)
+      .values([
+        {
+          personaId: 1,
+          name: "Education",
+          description: "Teach something valuable in under 60 seconds",
+          promptGuidance: "Focus on surprising facts, common misconceptions, or step-by-step how-tos",
+          isActive: true,
+        },
+        {
+          personaId: 1,
+          name: "Entertainment",
+          description: "Pure entertainment — trends, skits, relatable moments",
+          promptGuidance: "Hook in first 2 seconds, high energy, funny or emotionally resonant",
+          isActive: true,
+        },
+        {
+          personaId: 1,
+          name: "Inspiration",
+          description: "Motivational content, transformation stories, mindset shifts",
+          promptGuidance: "Start with a bold claim or question, end with a clear takeaway",
+          isActive: true,
+        },
+        {
+          personaId: 1,
+          name: "Product / Promo",
+          description: "Soft sell or review content around products or services",
+          promptGuidance: "Show don't tell, focus on the outcome for the viewer",
+          isActive: true,
+        },
+      ])
+      .run();
+    console.log("Seeded content pillars");
   }
 
   console.log("Seed complete");
