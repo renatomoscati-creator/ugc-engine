@@ -74,6 +74,50 @@ Respond with ONLY a JSON array:
 \`\`\``;
 }
 
+export function ideaFitScoringPrompt(params: {
+  persona: { name: string; niche: string; voiceTone: string; targetAudience: string };
+  ideas: Array<{ topic: string; angle: string; hookSketch: string }>;
+  approvedExamples: Array<{ topic: string; angle: string; hookSketch: string }>;
+  rejectedExamples: Array<{ topic: string; angle: string; hookSketch: string }>;
+}): string {
+  const approvedBlock =
+    params.approvedExamples.length > 0
+      ? `\nGOOD FIT examples (approved by creator — match this energy):\n${params.approvedExamples.slice(0, 6).map((e) => `  ✓ [${e.topic}] ${e.angle} | Hook: "${e.hookSketch}"`).join("\n")}\n`
+      : "";
+
+  const rejectedBlock =
+    params.rejectedExamples.length > 0
+      ? `\nBAD FIT examples (rejected by creator — avoid these patterns):\n${params.rejectedExamples.slice(0, 6).map((e) => `  ✗ [${e.topic}] ${e.angle} | Hook: "${e.hookSketch}"`).join("\n")}\n`
+      : "";
+
+  const ideasList = params.ideas
+    .map((idea, i) => `${i + 1}. topic="${idea.topic}" | angle="${idea.angle}" | hook="${idea.hookSketch}"`)
+    .join("\n");
+
+  return `You are scoring content ideas for persona fit.
+
+CREATOR: "${params.persona.name}"
+NICHE: ${params.persona.niche}
+VOICE/TONE: ${params.persona.voiceTone}
+TARGET AUDIENCE: ${params.persona.targetAudience}
+${approvedBlock}${rejectedBlock}
+Score each idea 0-100 for persona fit using these criteria:
+- Relevance to niche (does it belong in this creator's space?)
+- Match to voice/tone (would this creator naturally say this?)
+- Audience appeal (would their specific audience care about this?)
+- Originality (fresh angle vs. already-covered territory)
+
+IDEAS TO SCORE:
+${ideasList}
+
+Respond with ONLY a JSON array (one entry per idea, same order):
+\`\`\`json
+[
+  { "topic": "exact topic string", "score": 85, "reason": "one sentence explaining the score" }
+]
+\`\`\``;
+}
+
 export function nicheResearchPrompt(niche: string, platform: string): string {
   return `You are a social media strategist specializing in short-form content. Analyze the "${niche}" niche on ${platform}.
 

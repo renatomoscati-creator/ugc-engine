@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X, Trash2, Loader2 } from "lucide-react";
+import { Check, X, Trash2, Loader2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type ActiveAction = "approve" | "reject" | "delete" | null;
+type ActiveAction = "approve" | "reject" | "delete" | "override" | null;
 
 export function IdeaActions({
   ideaId,
   currentStatus,
+  fitScore,
 }: {
   ideaId: number;
   currentStatus: string;
+  fitScore?: number | null;
 }) {
   const router = useRouter();
   const [active, setActive] = useState<ActiveAction>(null);
@@ -47,6 +49,21 @@ export function IdeaActions({
     }
   }
 
+  async function handleOverride() {
+    if (active) return;
+    setActive("override");
+    try {
+      await fetch("/api/ideas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: ideaId, status: "generated" }),
+      });
+      router.refresh();
+    } finally {
+      setActive(null);
+    }
+  }
+
   async function handleDelete() {
     if (active) return;
     if (!window.confirm("Delete this idea? This cannot be undone.")) return;
@@ -59,8 +76,26 @@ export function IdeaActions({
     }
   }
 
+  const isAutoRejected = currentStatus === "rejected" && fitScore !== null && fitScore !== undefined && fitScore < 70;
+
   return (
     <div className="flex items-center gap-1">
+      {isAutoRejected && (
+        <Button
+          variant="ghost"
+          size="sm"
+          title="Override auto-rejection — move back to review"
+          disabled={active !== null}
+          onClick={handleOverride}
+          className="h-7 px-2 text-xs text-orange-600 hover:bg-orange-50 hover:text-orange-700 disabled:opacity-40"
+        >
+          {active === "override" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <><Undo2 className="h-3.5 w-3.5 mr-1" />Override</>
+          )}
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="sm"

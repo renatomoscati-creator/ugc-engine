@@ -71,6 +71,8 @@ export const ideas = sqliteTable("ideas", {
   angle: text("angle"),
   hookSketch: text("hook_sketch"),
   status: text("status").notNull().default("generated"), // generated/approved/rejected/scripted
+  fitScore: integer("fit_score"), // 0-100, null if not scored
+  fitReason: text("fit_reason"), // 1-sentence explanation from model
   createdAt: timestamp(),
   updatedAt: updatedAt(),
 });

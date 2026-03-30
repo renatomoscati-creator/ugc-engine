@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
 import { ideas, personas } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNotNull } from "drizzle-orm";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,7 +14,7 @@ import {
 import { GenerateIdeasButton } from "@/components/generate-ideas-button";
 import { IdeaActions } from "@/components/idea-actions";
 
-type StatusFilter = "pending" | "approved" | "rejected" | undefined;
+type StatusFilter = "pending" | "approved" | "rejected" | "auto-rejected" | undefined;
 
 const STATUS_BADGE: Record<
   string,
@@ -32,7 +32,30 @@ const STATUS_TABS = [
   { label: "Pending", value: "generated" },
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
+  { label: "Auto-rejected", value: "auto-rejected" },
 ] as const;
+
+function FitScoreBadge({ score, reason }: { score: number | null; reason: string | null }) {
+  if (score === null) return <span className="text-xs text-muted-foreground">—</span>;
+  const colorClass =
+    score >= 90
+      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+      : score >= 70
+      ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+      : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-semibold ${colorClass}`}>
+        {score}
+      </span>
+      {reason && (
+        <span className="text-xs text-muted-foreground italic max-w-[160px] leading-tight">
+          {reason}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default async function IdeasPage({
   searchParams,
@@ -46,33 +69,42 @@ export default async function IdeasPage({
   const persona = db.select().from(personas).where(eq(personas.id, 1)).get();
   const nicheEmpty = !persona?.niche;
 
-  let query = db
-    .select({
-      id: ideas.id,
-      hookSketch: ideas.hookSketch,
-      topic: ideas.topic,
-      pillarId: ideas.pillarId,
-      status: ideas.status,
-      createdAt: ideas.createdAt,
-    })
-    .from(ideas)
-    .orderBy(desc(ideas.createdAt))
-    .limit(100);
-
   let allIdeas: Array<{
     id: number;
     hookSketch: string | null;
     topic: string;
     pillarId: number | null;
     status: string;
+    fitScore: number | null;
+    fitReason: string | null;
     createdAt: string;
   }> = [];
 
   try {
-    const rows = query.all();
-    allIdeas = status
-      ? rows.filter((r) => r.status === status)
-      : rows;
+    const rows = db
+      .select({
+        id: ideas.id,
+        hookSketch: ideas.hookSketch,
+        topic: ideas.topic,
+        pillarId: ideas.pillarId,
+        status: ideas.status,
+        fitScore: ideas.fitScore,
+        fitReason: ideas.fitReason,
+        createdAt: ideas.createdAt,
+      })
+      .from(ideas)
+      .orderBy(desc(ideas.createdAt))
+      .limit(100)
+      .all();
+
+    if (status === "auto-rejected") {
+      // Auto-rejected = status is "rejected" AND fitScore is not null (scored, not human-rejected)
+      allIdeas = rows.filter((r) => r.status === "rejected" && r.fitScore !== null);
+    } else if (status) {
+      allIdeas = rows.filter((r) => r.status === status);
+    } else {
+      allIdeas = rows;
+    }
   } catch {
     // empty state
   }
@@ -124,6 +156,7 @@ export default async function IdeasPage({
           <TableRow>
             <TableHead>Hook</TableHead>
             <TableHead>Topic</TableHead>
+            <TableHead>Score</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -139,6 +172,9 @@ export default async function IdeasPage({
                 {idea.topic}
               </TableCell>
               <TableCell>
+                <FitScoreBadge score={idea.fitScore} reason={idea.fitReason} />
+              </TableCell>
+              <TableCell>
                 <Badge variant={STATUS_BADGE[idea.status] ?? "outline"}>
                   {idea.status}
                 </Badge>
@@ -147,14 +183,18 @@ export default async function IdeasPage({
                 {idea.createdAt}
               </TableCell>
               <TableCell className="text-right">
-                <IdeaActions ideaId={idea.id} currentStatus={idea.status} />
+                <IdeaActions
+                  ideaId={idea.id}
+                  currentStatus={idea.status}
+                  fitScore={idea.fitScore}
+                />
               </TableCell>
             </TableRow>
           ))}
           {allIdeas.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={6}
                 className="py-8 text-center text-muted-foreground"
               >
                 No ideas yet. Click Generate Ideas to get started.
