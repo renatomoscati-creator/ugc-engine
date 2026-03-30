@@ -1,32 +1,13 @@
 import { getDb } from "@/lib/db";
 import { scripts } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { GenerateBatchButton } from "./components/generate-batch-button";
-import { ScriptActions } from "./components/script-actions";
-
-const STATUS_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  generated: "secondary",
-  approved_for_production: "default",
-  rejected: "destructive",
-  in_production: "outline",
-  produced: "default",
-};
+import { ScriptCard } from "@/components/script-card";
 
 export default async function ScriptsPage() {
   const db = getDb();
   const allScripts = db
-    .select({
-      id: scripts.id,
-      hook: scripts.hook,
-      platformTarget: scripts.platformTarget,
-      estimatedDuration: scripts.estimatedDuration,
-      status: scripts.status,
-      createdAt: scripts.createdAt,
-    })
+    .select()
     .from(scripts)
     .orderBy(desc(scripts.createdAt))
     .limit(100)
@@ -42,47 +23,17 @@ export default async function ScriptsPage() {
         <GenerateBatchButton />
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Hook</TableHead>
-            <TableHead>Platform</TableHead>
-            <TableHead>Duration</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      {allScripts.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">
+          No scripts yet. Generate ideas first, then generate scripts.
+        </div>
+      ) : (
+        <div className="space-y-3">
           {allScripts.map((script) => (
-            <TableRow key={script.id}>
-              <TableCell className="max-w-xs truncate font-medium">
-                {script.hook ?? "—"}
-              </TableCell>
-              <TableCell className="capitalize">{script.platformTarget ?? "—"}</TableCell>
-              <TableCell>{script.estimatedDuration}s</TableCell>
-              <TableCell>
-                <Badge variant={STATUS_COLORS[script.status] ?? "outline"}>
-                  {script.status}
-                </Badge>
-              </TableCell>
-              <TableCell className="font-mono text-xs text-muted-foreground">
-                {script.createdAt}
-              </TableCell>
-              <TableCell className="text-right">
-                <ScriptActions scriptId={script.id} status={script.status} />
-              </TableCell>
-            </TableRow>
+            <ScriptCard key={script.id} script={script} />
           ))}
-          {allScripts.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                No scripts yet. Generate ideas first, then generate scripts.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+        </div>
+      )}
     </div>
   );
 }
