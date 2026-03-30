@@ -46,6 +46,10 @@ export async function POST(req: Request) {
       .where(eq(ideas.status, "approved"))
       .all();
 
+    if (approvedIdeas.length === 0) {
+      return NextResponse.json({ error: "No approved ideas found. Approve some ideas first." }, { status: 422 });
+    }
+
     const jobs = await Promise.all(
       approvedIdeas.map((idea) =>
         enqueue(QUEUE_NAMES.SCRIPT_GEN, "generate-script", {
@@ -54,7 +58,7 @@ export async function POST(req: Request) {
         })
       )
     );
-    return NextResponse.json({ jobsQueued: jobs.length });
+    return NextResponse.json({ jobIds: jobs.map((j) => j.id), total: jobs.length });
   }
 
   return NextResponse.json({ error: "Unknown type" }, { status: 400 });

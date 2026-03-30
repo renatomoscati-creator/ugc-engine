@@ -2,33 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
 
-type JobState =
-  | "waiting"
-  | "active"
-  | "completed"
-  | "failed"
-  | "delayed"
-  | "prioritized"
-  | "unknown";
-
-type ScriptStatus =
+type ScriptPhase =
   | { phase: "idle" }
-  | { phase: "queued"; jobsCount: number }
-  | { phase: "done" }
-  | { phase: "failed"; reason: string };
-
-type IdeaStatus =
-  | { phase: "idle" }
-  | { phase: "queued"; jobId: string }
-  | { phase: "active"; jobId: string }
-  | { phase: "completed" }
+  | { phase: "queued"; jobIds: string[]; total: number }
+  | { phase: "running"; completed: number; total: number; failed: number }
+  | { phase: "done"; completed: number; total: number; failed: number }
   | { phase: "failed"; reason: string };
 
 export function GenerateBatchButton() {
-  const [ideaStatus, setIdeaStatus] = useState<IdeaStatus>({ phase: "idle" });
-  const [scriptStatus, setScriptStatus] = useState<ScriptStatus>({ phase: "idle" });
+  const [scriptStatus, setScriptStatus] = useState<ScriptPhase>({ phase: "idle" });
   const [loading, setLoading] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -39,165 +23,103 @@ export function GenerateBatchButton() {
     }
   }
 
-  useEffect(() => {
-    return () => stopPolling();
-  }, []);
+  useEffect(() => () => stopPolling(), []);
 
-  async function pollJob(jobId: string) {
+  async function pollBatch(jobIds: string[]) {
     try {
-      const res = await fetch(`/api/jobs/${jobId}`);
+      const res = await fetch("/api/jobs/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobIds }),
+      });
       if (!res.ok) return;
       const data = (await res.json()) as {
-        id: string;
-        state: JobState;
-        progress: unknown;
-        result: unknown;
-        failedReason: string | null;
+        total: number;
+        completed: number;
+        failed: number;
+        allDone: boolean;
       };
-      if (data.state === "completed") {
+
+      if (data.allDone) {
         stopPolling();
-        setIdeaStatus({ phase: "completed" });
         setLoading(false);
-      } else if (data.state === "failed") {
-        stopPolling();
-        setIdeaStatus({ phase: "failed", reason: data.failedReason ?? "Unknown error" });
-        setLoading(false);
-      } else if (data.state === "active") {
-        setIdeaStatus({ phase: "active", jobId });
+        setScriptStatus({ phase: "done", completed: data.completed, total: data.total, failed: data.failed });
+      } else {
+        setScriptStatus({ phase: "running", completed: data.completed, total: data.total, failed: data.failed });
       }
     } catch {
       // keep polling on transient errors
     }
   }
 
-  async function handleGenerateIdeas() {
-    if (loading) return;
-    setLoading(true);
-    setIdeaStatus({ phase: "queued", jobId: "" });
-    try {
-      const res = await fetch("/api/llm/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "ideas", personaId: 1, count: 10 }),
-      });
-      const data = (await res.json()) as { jobId?: string };
-      if (!res.ok || !data.jobId) {
-        setIdeaStatus({ phase: "failed", reason: "Request failed" });
-        setLoading(false);
-        return;
-      }
-      setIdeaStatus({ phase: "queued", jobId: data.jobId });
-      intervalRef.current = setInterval(() => pollJob(data.jobId!), 2000);
-    } catch (err) {
-      setIdeaStatus({
-        phase: "failed",
-        reason: err instanceof Error ? err.message : "Unknown error",
-      });
-      setLoading(false);
-    }
-  }
-
   async function handleGenerateScripts() {
     if (loading) return;
     setLoading(true);
-    setScriptStatus({ phase: "queued", jobsCount: 0 });
+    setScriptStatus({ phase: "idle" });
+
     try {
       const res = await fetch("/api/llm/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "scripts", personaId: 1 }),
       });
-      const data = (await res.json()) as { jobsQueued?: number };
+
+      const data = (await res.json()) as { jobIds?: string[]; total?: number; error?: string };
+
       if (!res.ok) {
-        setScriptStatus({ phase: "failed", reason: "Request failed" });
+        setScriptStatus({ phase: "failed", reason: data.error ?? "Request failed" });
         setLoading(false);
         return;
       }
-      setScriptStatus({ phase: "done" });
+
+      const jobIds = data.jobIds ?? [];
+      const total = data.total ?? 0;
+      setScriptStatus({ phase: "queued", jobIds, total });
+      intervalRef.current = setInterval(() => pollBatch(jobIds), 2000);
     } catch (err) {
-      setScriptStatus({
-        phase: "failed",
-        reason: err instanceof Error ? err.message : "Unknown error",
-      });
-    } finally {
+      setScriptStatus({ phase: "failed", reason: err instanceof Error ? err.message : "Unknown error" });
       setLoading(false);
     }
   }
 
-  const ideaPhase = ideaStatus.phase;
-  const scriptPhase = scriptStatus.phase;
+  const s = scriptStatus;
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          onClick={handleGenerateIdeas}
-          disabled={loading}
-        >
-          {ideaPhase === "active" || (ideaPhase === "queued" && loading) ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          Generate Ideas
-        </Button>
+      {s.phase === "idle" && (
         <Button onClick={handleGenerateScripts} disabled={loading}>
-          {scriptPhase === "queued" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : null}
+          <FileText className="h-4 w-4" />
           Generate Scripts
         </Button>
-      </div>
+      )}
 
-      {ideaPhase === "queued" && (
-        <span className="text-xs text-amber-700">⏳ Ideas job queued...</span>
-      )}
-      {ideaPhase === "active" && (
-        <span className="text-xs text-blue-700">⚡ Generating ideas...</span>
-      )}
-      {ideaPhase === "completed" && (
-        <span className="text-xs text-green-700">
-          ✅ Ideas done!{" "}
-          <button className="underline" onClick={() => window.location.reload()}>
-            Refresh
-          </button>
-        </span>
-      )}
-      {ideaPhase === "failed" && (
-        <span className="text-xs text-red-700">
-          ❌ Ideas failed:{" "}
-          {"reason" in ideaStatus ? ideaStatus.reason : ""}
-          <button
-            className="ml-1 underline"
-            onClick={() => { setIdeaStatus({ phase: "idle" }); setLoading(false); }}
-          >
-            Retry
-          </button>
+      {s.phase === "queued" && (
+        <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          ⏳ Queued {s.total} script{s.total !== 1 ? "s" : ""}...
         </span>
       )}
 
-      {scriptPhase === "queued" && (
-        <span className="text-xs text-amber-700">⏳ Queuing script jobs...</span>
-      )}
-      {scriptPhase === "done" && (
-        <span className="text-xs text-green-700">
-          ✅ Scripts queued!{" "}
-          <button className="underline" onClick={() => window.location.reload()}>
-            Refresh
-          </button>
+      {s.phase === "running" && (
+        <span className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          ⚡ {s.completed}/{s.total} scripts done{s.failed > 0 ? ` · ${s.failed} failed` : ""}
         </span>
       )}
-      {scriptPhase === "failed" && (
-        <span className="text-xs text-red-700">
-          ❌ Scripts failed:{" "}
-          {"reason" in scriptStatus ? scriptStatus.reason : ""}
-          <button
-            className="ml-1 underline"
-            onClick={() => { setScriptStatus({ phase: "idle" }); setLoading(false); }}
-          >
-            Retry
-          </button>
+
+      {s.phase === "done" && (
+        <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
+          ✅ {s.completed}/{s.total} scripts ready
+          {s.failed > 0 && <span className="text-red-700 ml-1">· {s.failed} failed</span>}
+          <button className="ml-2 underline" onClick={() => window.location.reload()}>Refresh</button>
+          <button className="ml-1 underline" onClick={() => setScriptStatus({ phase: "idle" })}>Again</button>
+        </span>
+      )}
+
+      {s.phase === "failed" && (
+        <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800">
+          ❌ {s.reason}
+          <button className="ml-2 underline" onClick={() => { setScriptStatus({ phase: "idle" }); setLoading(false); }}>Retry</button>
         </span>
       )}
     </div>
