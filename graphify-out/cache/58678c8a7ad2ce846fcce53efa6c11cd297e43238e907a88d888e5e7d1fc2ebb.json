@@ -1,0 +1,1 @@
+{"nodes": [{"id": "insight_card", "label": "insight-card.tsx", "file_type": "code", "source_file": "web/src/components/insight-card.tsx", "source_location": "L1"}], "edges": [{"source": "insight_card", "target": "utils", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "web/src/components/insight-card.tsx", "source_location": "L1", "weight": 1.0}]}
